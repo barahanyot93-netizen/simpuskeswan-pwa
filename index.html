@@ -2595,10 +2595,16 @@ function initAllListeners(){
   muatNamaKepalaUptd();
 }
 </script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('pwabuilder-sw.js');
-  }
-</script>
+<!-- Kode website Anda baris 1 sampai 2600 ada di atas ini -->
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./pwabuilder-sw.js');
+      });
+    }
+  </script>
 </body>
+</html>
+</script></body>
 </html>
