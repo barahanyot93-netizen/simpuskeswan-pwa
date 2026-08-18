@@ -1,24 +1,18 @@
 {
-  "short_name": "AplikasiKu",
-  "name": "Aplikasi Progressive Web",
+  "short_name": "Simpuskeswan",
+  "name": "Simpuskeswan",
   "icons": [
     {
-      "src": "icons/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icons/icon-512.png",
+      "src": "icons/icons-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/nama-repo/",
-  "scope": "/nama-repo/",
-  "background_color": "#ffffff",
-  "theme_color": "#0078d4",
+  "start_url": "/drh-taufik/",
+  "scope": "/drh-taufik/",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0078d4"
 }
