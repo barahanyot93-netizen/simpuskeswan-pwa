@@ -254,6 +254,7 @@
     #laporan-print-area h4, #pkh-print-area h4{font-size:12px;}
   }
 </style>
+<link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -2593,6 +2594,11 @@ function initAllListeners(){
   initStokListener();
   muatNamaKepalaUptd();
 }
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('pwabuilder-sw.js');
+  }
 </script>
 </body>
 </html>
