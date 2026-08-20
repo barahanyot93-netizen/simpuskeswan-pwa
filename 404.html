@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <title>Not Found</title>
+    <meta name="robots" content="noindex">
+    <meta http-equiv="refresh" content="0; url=/simpuskeswan-pwa/">
+    <script>
+      // Try to load the app index.html so the SPA can handle routing for deep-links
+      (function(){
+        var url = '/simpuskeswan-pwa/index.html';
+        fetch(url).then(function(resp){ return resp.text(); }).then(function(html){
+          document.open();
+          document.write(html);
+          document.close();
+        }).catch(function(){
+          // fallback: redirect to root
+          window.location.href = '/simpuskeswan-pwa/';
+        });
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
