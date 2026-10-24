@@ -393,6 +393,9 @@
   .dx-chip.dx-non{color:#2E7D32;} .dx-chip.dx-non i{background:#43A047;}
   .dx-chip.dx-phms:hover{border-color:#D32F2F; background:#FDECEA;} .dx-chip.dx-non:hover{border-color:#43A047; background:#E8F5E9;}
   .dx-chip.dx-phms.aktif{background:#D32F2F; color:#fff; border-color:#D32F2F;} .dx-chip.dx-phms.aktif i{background:#fff;}
+  .dx-judul.dx-obat{color:#1B5E7A;}
+  .dx-chip.dx-ob{color:#1B5E7A;} .dx-chip.dx-ob i{background:#2A88AE;} .dx-chip.dx-ob:hover{border-color:#2A88AE; background:#E6F3F8;}
+  .dx-chip.dx-ob.aktif{background:#1B5E7A; color:#fff; border-color:#1B5E7A;} .dx-chip.dx-ob.aktif i{background:#fff;}
   .dx-chip.dx-non.aktif{background:#2E7D32; color:#fff; border-color:#2E7D32;} .dx-chip.dx-non.aktif i{background:#fff;}
 </style>
 </head>
@@ -1550,7 +1553,14 @@ const DISEASE_MAP_PKH5 = [
 ];
 const JENIS_LAYANAN = ['Pengobatan','Konsultasi','Pemeriksaan Kesehatan','Bedah Minor','Lainnya'];
 const SISTEM_PELAYANAN = ['Aktif','Semi Aktif','Pasif'];
-const STATUS_PELAYANAN = ['Sembuh','Masih Sakit','Mati','Selesai'];
+// Daftar Gampong per kecamatan wilayah kerja (Arongan Lambalek 27, Woyla Barat 24, Bubon 17).
+// Bila ada penyesuaian ejaan/penambahan Gampong, cukup ubah daftar di bawah ini.
+const GAMPONG_RESMI = {
+  'Arongan Lambalek': ['Alue Bagok','Alue Batee','Alue Sundak','Arongan','Cot Buloh','Cot Juru Mudi','Cot Kumbang','Drien Rampak','Gunong Pulo','Karang Hampa','Keub','Kubu','Pante Mutia','Panton Bahagia','Panton Makmur','Peulanteu','Peuribu','Rimba Langgeh','Seuneubok Lhong','Seuneubok Teungoh','Simpang Peut','Suak Bidok','Suak Ie Beuso','Suak Keumudai','Teupin Peuraho','Ujong Beusa','Ujong Simpang'],
+  'Woyla Barat': ['Alue Keumuning','Alue Leuhop','Alue Permen','Blang Cot Mameh','Blang Cot Rubek','Blang Luah Leuhop Mameh','Cot Lagan Leuhop Mameh','Cot Rambong','Ie Sayang','Karak','Kulam Kaju','Lhok Malee','Lubuk Pasi Ara','Lueng Baro','Mon Pasong','Napai','Pasi Jeut','Pasi Malee','Pasi Mali','Pasi Panyang','Peuleukeung','Simpang Keumaron','Ule Pulo','Ulei Pasi Ara'],
+  'Bubon': ['Alue Bakong','Alue Lhok','Beurawang','Blang Sibeutong','Cot Keumuneng','Cot Lada','Gunong Panah','Kuala Pling','Kuta Padang','Layung','Liceh','Peulanteu','Rambong','Seumuleng','Seuneubok Trap','Suak Pangkat','Ulee Blang']
+};
+const STATUS_PELAYANAN = ['Sembuh','Masih Sakit','Mati','Potong Paksa','Selesai'];
 const JENIS_KONSULTASI = ['Konsultasi kesehatan ternak','Konsultasi gejala penyakit','Konsultasi vaksinasi','Konsultasi reproduksi','Konsultasi pakan dan pemeliharaan'];
 const JENIS_VAKSIN = ['PMK','LSD','SE','BRUCELLOSIS','ND','AI','RABIES'];
 
@@ -1596,9 +1606,9 @@ function bangunPetaGampong(){
   const peta = new Map();
   Object.keys(frek).forEach(kec=>{
     const urut = Array.from(frek[kec].entries()).sort((a,b)=> b[1].n - a[1].n);
-    const wakil = [];
+    const wakil = (GAMPONG_RESMI[kec]||[]).map(g=>({nm: normTeks(g), tampil: g}));
     urut.forEach(([nm, e])=>{
-      const w = wakil.find(x=> miripGampong(x.nm, nm));
+      const w = wakil.find(x=> x.nm === nm) || wakil.find(x=> miripGampong(x.nm, nm));
       if(w){ peta.set(kec+'|'+nm, w.tampil); }
       else{
         const tampil = Object.entries(e.raw).sort((a,b)=> b[1]-a[1])[0][0];
@@ -1704,15 +1714,36 @@ function selPemilikHtml(rec){
 }
 
 // Blok isian pemilik: Kecamatan, Gampong/Desa, Nama Pemilik (+ NIK untuk vaksinasi)
+function resmiGampong(kec, desa){
+  const nd = normTeks(desa);
+  if(!nd) return '';
+  const daftar = GAMPONG_RESMI[kec] || [];
+  return daftar.find(g=> normTeks(g) === nd) || daftar.find(g=> miripGampong(normTeks(g), nd)) || '';
+}
+function opsiGampongHtml(kec, terpilih){
+  if(!kec) return '<option value="">Pilih kecamatan dahulu</option>';
+  const daftar = (GAMPONG_RESMI[kec] || []).slice().sort(urutAbjad);
+  let pilih = resmiGampong(kec, terpilih) || terpilih || '';
+  const semua = (pilih && !daftar.includes(pilih)) ? [...daftar, pilih] : daftar;   // data lama yang ejaannya di luar daftar tetap bisa diubah
+  return '<option value="">Pilih Gampong...</option>' + semua.map(g=>`<option value="${escapeHtml(g)}" ${g===pilih?'selected':''}>${escapeHtml(g)}</option>`).join('');
+}
+window.isiGampong = function(sfx){
+  const sel = document.getElementById('f-desa'+sfx);
+  if(sel) sel.innerHTML = opsiGampongHtml(gv('f-kec'+sfx), '');
+  perbaruiSaran(sfx);
+};
+function selectGampongHtml(sfx, kec, desa){
+  return `<select id="f-desa${sfx}" onchange="perbaruiSaran('${sfx}')">${opsiGampongHtml(kec, desa)}</select>`;
+}
 function ownerFormHtml(sfx, rec={}, denganNik=false){
   const o = ownerPrefill(rec);
   return `
     <div class="row2">
       <div class="field"><label>Kecamatan <span class="req">*</span></label>
-        <select id="f-kec${sfx}" onchange="perbaruiSaran('${sfx}')">${opsiSelectHtml(KECAMATAN_DIIZINKAN, o.kecamatan)}</select>
+        <select id="f-kec${sfx}" onchange="isiGampong('${sfx}')">${opsiSelectHtml(KECAMATAN_DIIZINKAN, o.kecamatan)}</select>
       </div>
       <div class="field"><label>Gampong/Desa <span class="req">*</span></label>
-        <input id="f-desa${sfx}" list="dl-gampong" autocomplete="off" value="${escapeHtml(o.desa)}" placeholder="Wajib diisi" oninput="perbaruiSaran('${sfx}')" onfocus="perbaruiSaran('${sfx}')">
+        ${selectGampongHtml(sfx, o.kecamatan, o.desa)}
       </div>
     </div>
     <div class="field"><label>Nama Pemilik <span class="req">*</span></label>
@@ -1795,13 +1826,15 @@ function bacaPemilik(sfx, denganNik=false){
     nik: denganNik ? gv('f-nik'+sfx).replace(/\s+/g,'') : ''
   };
   if(!o.kecamatan) throw new FieldError('f-kec'+sfx, 'Pilih kecamatan terlebih dahulu');
-  if(!o.desa) throw new FieldError('f-desa'+sfx, 'Isi nama Gampong/Desa');
+  if(!o.desa) throw new FieldError('f-desa'+sfx, 'Pilih Gampong/Desa');
   if(!o.nama) throw new FieldError('f-nama'+sfx, 'Isi nama pemilik');
   // Samakan ejaan dengan Gampong yang sudah tersimpan di kecamatan ini
   const adaDesa = new Map();
   peternakCache.forEach(p=>{ if(p.kecamatan === o.kecamatan && p.desa) adaDesa.set(normTeks(p.desa), gampongKanon(p.kecamatan, p.desa)); });
   const persis = adaDesa.get(normTeks(o.desa));
-  if(persis){ o.desa = persis; }
+  const resmi = resmiGampong(o.kecamatan, o.desa);
+  if(resmi){ o.desa = resmi; }
+  else if(persis){ o.desa = persis; }
   else{
     const mirip = Array.from(adaDesa.values()).find(g=> miripGampong(normTeks(g), normTeks(o.desa)));
     if(mirip && confirm(`Gampong "${o.desa}" mirip dengan "${mirip}" yang sudah tersimpan di ${o.kecamatan}.\n\nOK = pakai "${mirip}"\nBatal = tetap "${o.desa}" sebagai Gampong baru`)) o.desa = mirip;
@@ -2134,14 +2167,14 @@ function phmsBlokHtml(p={}){
   const penyakitAwal = p.penyakitPHMS || cocokAwal[0] || '';
   return `<div id="blok-phms" class="form-stack phms-box">
       <div class="field"><label>Status Kasus PHMS</label>
-        <select id="f-statusphms" onchange="perbaruiPHMS()">
+        <select id="f-statusphms" onchange="phmsDiubah()">
           ${[['Tidak','Bukan kasus PHMS'],['Suspect','Suspect — dugaan, belum terkonfirmasi'],['Tertular','Tertular — terkonfirmasi']]
             .map(([v,l])=>`<option value="${v}" ${statusAwal===v?'selected':''}>${l}</option>`).join('')}
         </select>
         <div class="hint" id="hint-phms"></div>
       </div>
       <div class="field" id="wrap-penyakitphms" style="display:none;"><label>Penyakit PHMS <span class="req">*</span></label>
-        <select id="f-penyakitphms">${opsiSelectHtml(PHMS_DAFTAR.map(d=>d.nama), penyakitAwal)}</select>
+        <select id="f-penyakitphms" onchange="penyakitPHMSDiubah()">${opsiSelectHtml(PHMS_DAFTAR.map(d=>d.nama), penyakitAwal)}</select>
       </div>
     </div>`;
 }
@@ -2199,22 +2232,75 @@ window.pilihDiagnosa = function(btn){
   if(idx >= 0) daftar.splice(idx, 1); else daftar.push(label);
   box.value = daftar.join(', ');
   box.classList.remove('input-error');
-  // sinkronkan Status Kasus PHMS: tombol merah otomatis menandai kasus PHMS (Tertular, bisa diganti Suspect)
-  const st = document.getElementById('f-statusphms');
-  const pen = document.getElementById('f-penyakitphms');
-  if(st && pen){
-    const cocok = cocokPHMS(box.value);
-    if(cocok.length){
-      if(st.value === 'Tidak') st.value = 'Tertular';
-      if(!cocok.includes(pen.value)) pen.value = cocok[0];
-    }else if(btn.classList.contains('dx-phms')){
-      st.value = 'Tidak';
-    }
-    perbaruiPHMS();
-  }
-  box.dispatchEvent(new Event('input'));
+  sinkronDiagnosa();
+};
+
+/* ---------- Pilihan cepat nama obat (urut abjad) ---------- */
+const OBAT_CEPAT = ['Vet Oxy LA','Vet Oxy SB','Duodin LA','Roxine','Procaben LA','Pentrep 4:0.5','Hematodin','Hemadex','Biodin','Vit. B-Com','Injectamin','Intracin','B-12','Calcidex Plus','Vetadryl','Sulpidon','Sulprodon','Flukicid','Verm-O Bls','Verm-O Kplt','Colibact Inj','Colibact Bls'];
+function obatCepatHtml(){
+  const daftar = OBAT_CEPAT.slice().sort((a,b)=> a.localeCompare(b, 'id', {sensitivity:'base', numeric:true}));
+  return `<div class="dx-cepat obat-cepat">
+    <div class="dx-judul dx-obat">💊 Pilihan Cepat Nama Obat:</div>
+    <div class="dx-grup">${daftar.map(t=>`<button type="button" class="dx-chip dx-ob" data-ob="${escapeHtml(t)}" onclick="pilihObat(this)"><i></i>${escapeHtml(t)}</button>`).join('')}</div>
+    <div class="hint">Klik untuk memilih/membatalkan (boleh lebih dari satu). Bila obat tidak ada di tombol, ketik sendiri di kotak Obat yang Digunakan.</div>
+  </div>`;
+}
+window.sinkronObat = function(){
+  const box = document.getElementById('f-terapi');
+  if(!box) return;
   const isi = box.value.split(/\s*[,;\n]\s*/).map(x=>x.toLowerCase());
-  document.querySelectorAll('.dx-chip').forEach(c=> c.classList.toggle('aktif', isi.includes(c.dataset.dx.toLowerCase())));
+  document.querySelectorAll('.dx-ob').forEach(c=> c.classList.toggle('aktif', isi.includes(c.dataset.ob.toLowerCase())));
+};
+window.pilihObat = function(btn){
+  const box = document.getElementById('f-terapi');
+  if(!box) return;
+  const label = btn.dataset.ob;
+  const daftar = box.value.split(/\s*[,;\n]\s*/).filter(Boolean);
+  const idx = daftar.findIndex(x=>x.toLowerCase() === label.toLowerCase());
+  if(idx >= 0) daftar.splice(idx, 1); else daftar.push(label);
+  box.value = daftar.join(', ');
+  box.classList.remove('input-error');
+  sinkronObat();
+};
+
+/* ---------- Sinkron Diagnosa <-> Status Kasus PHMS ---------- */
+// Diagnosa PHMS otomatis menandai kasus PHMS; diagnosa non-PHMS otomatis "Bukan kasus PHMS"; tombol ikut berubah.
+window.sinkronDiagnosa = function(){
+  const box = document.getElementById('f-jenispenyakit');
+  if(!box) return;
+  const teks = box.value;
+  const isi = teks.split(/\s*[,;\n]\s*/).map(x=>x.toLowerCase());
+  document.querySelectorAll('.dx-chip[data-dx]').forEach(c=> c.classList.toggle('aktif', isi.includes(c.dataset.dx.toLowerCase())));
+  const st = document.getElementById('f-statusphms'), pen = document.getElementById('f-penyakitphms');
+  if(!st || !pen) return;
+  const cocok = cocokPHMS(teks);
+  if(cocok.length){
+    if(st.value === 'Tidak') st.value = 'Tertular';
+    if(!cocok.includes(pen.value)) pen.value = cocok[0];
+  }else{
+    st.value = 'Tidak';
+  }
+  perbaruiPHMS();
+};
+window.phmsDiubah = function(){
+  perbaruiPHMS();
+  const box = document.getElementById('f-jenispenyakit');
+  if(box && gv('f-statusphms') === 'Tidak'){
+    // dipilih "Bukan kasus PHMS": buang penyakit PHMS dari Diagnosa
+    box.value = box.value.split(/\s*[,;\n]\s*/).filter(x=> x && !cocokPHMS(x).length).join(', ');
+    sinkronDiagnosa();
+  }else if(box) penyakitPHMSDiubah();
+};
+window.penyakitPHMSDiubah = function(){
+  const box = document.getElementById('f-jenispenyakit'), pen = document.getElementById('f-penyakitphms');
+  if(!box || !pen || gv('f-statusphms') === 'Tidak') return;
+  if(!cocokPHMS(box.value).includes(pen.value)){
+    const chip = Array.from(document.querySelectorAll('.dx-phms')).find(c=> cocokPHMS(c.dataset.dx)[0] === pen.value);
+    const daftar = box.value.split(/\s*[,;\n]\s*/).filter(x=> x && !cocokPHMS(x).length);   // ganti penyakit PHMS lama
+    daftar.push(chip ? chip.dataset.dx : pen.value);
+    box.value = daftar.join(', ');
+  }
+  sinkronDiagnosa();
 };
 
 /* ---------- PELAYANAN (Pengobatan, Bedah Minor) ---------- */
@@ -2232,7 +2318,7 @@ function pelayananFormHtml(p={}, edit=false){
       <div class="field"><label>Jenis Pelayanan <span class="req">*</span></label>
         <select id="f-jenislayanan">${opsiSelectHtml(JENIS_PELAYANAN_FORM, p.jenisLayanan)}</select>
       </div>
-      <div class="field"><label>Sistem Pelayanan</label>
+      <div class="field"><label>Sistem Pelayanan <span class="req">*</span></label>
         <select id="f-sistem">${opsiSelectHtml(SISTEM_PELAYANAN, p.sistemPelayanan)}</select>
       </div>
     </div>
@@ -2240,13 +2326,14 @@ function pelayananFormHtml(p={}, edit=false){
       <textarea id="f-anamnesa" rows="2" placeholder="Wajib diisi — tulis keluhan/riwayat yang disampaikan pemilik">${escapeHtml(p.anamnesa)}</textarea>
     </div>
     <div class="field"><label>Diagnosa Penyakit <span class="req">*</span></label>
-      <textarea id="f-jenispenyakit" rows="2" placeholder="Wajib diisi — pilih tombol di bawah atau ketik sendiri">${escapeHtml(p.jenisPenyakit)}</textarea>
+      <textarea id="f-jenispenyakit" rows="2" placeholder="Wajib diisi — pilih tombol di bawah atau ketik sendiri" oninput="sinkronDiagnosa()">${escapeHtml(p.jenisPenyakit)}</textarea>
     </div>
     ${diagnosaCepatHtml()}
     <div class="field"><label>Obat yang Digunakan <span class="req">*</span></label>
-      <textarea id="f-terapi" rows="2" placeholder="Wajib diisi — contoh: Ivermectin, Antibiotik, Vitamin B Kompleks">${escapeHtml(p.terapi)}</textarea>
+      <textarea id="f-terapi" rows="2" placeholder="Wajib diisi — pilih tombol obat di bawah atau ketik sendiri" oninput="sinkronObat()">${escapeHtml(p.terapi)}</textarea>
     </div>
-    <div class="field"><label>Status Pelayanan</label>
+    ${obatCepatHtml()}
+    <div class="field"><label>Status Pelayanan <span class="req">*</span></label>
       <select id="f-status">${opsiSelectHtml(STATUS_PELAYANAN, p.status)}</select>
     </div>
     ${phmsBlokHtml(p)}
@@ -2265,11 +2352,11 @@ async function kumpulDataPelayanan(){
     const hewan = bacaHewan('', false);
     const d = {
       jenisLayanan: jenis, tanggal: new Date(tglStr), catatan: gv('f-catatan'),
-      sistemPelayanan: gv('f-sistem'),
+      sistemPelayanan: wajib('f-sistem', 'Pilih sistem pelayanan'),
       anamnesa: wajib('f-anamnesa', 'Isi anamnesa/keluhan pemilik'),
       jenisPenyakit: wajib('f-jenispenyakit', 'Isi diagnosa penyakit'),
       terapi: wajib('f-terapi', 'Isi obat yang digunakan'),
-      status: gv('f-status'), hasilKonsultasi: '',
+      status: wajib('f-status', 'Pilih status pelayanan (Sembuh/Masih Sakit/Mati/Potong Paksa/Selesai)'), hasilKonsultasi: '',
       ...bacaPHMS()
     };
     return { data: { ...d, ...(await simpanPemilikJikaBaru(pemilik)) }, hewan };
@@ -2574,6 +2661,8 @@ const angka = (id)=> Math.max(0, Math.floor(Number(gv(id)) || 0));
 
 // Samakan ejaan Gampong dengan yang sudah tersimpan (sama seperti form pemilik)
 function samakanGampong(kec, desa){
+  const resmi = resmiGampong(kec, desa);
+  if(resmi) return resmi;
   const ada = new Map();
   peternakCache.forEach(p=>{ if(p.kecamatan === kec && p.desa) ada.set(normTeks(p.desa), gampongKanon(kec, p.desa)); });
   pelayananSemua.forEach(p=>{ if(p.kecamatan === kec && p.desa) ada.set(normTeks(p.desa), gampongKanon(kec, p.desa)); });
@@ -2586,16 +2675,16 @@ function samakanGampong(kec, desa){
 function lokasiBlokHtml(sfx, p={}){
   return `<div class="row2">
       <div class="field"><label>Kecamatan <span class="req">*</span></label>
-        <select id="f-kec${sfx}" onchange="perbaruiSaran('${sfx}')">${opsiSelectHtml(KECAMATAN_DIIZINKAN, p.kecamatan)}</select>
+        <select id="f-kec${sfx}" onchange="isiGampong('${sfx}')">${opsiSelectHtml(KECAMATAN_DIIZINKAN, p.kecamatan)}</select>
       </div>
       <div class="field"><label>Gampong/Desa <span class="req">*</span></label>
-        <input id="f-desa${sfx}" list="dl-gampong" autocomplete="off" value="${escapeHtml(p.desa)}" placeholder="Wajib diisi" oninput="perbaruiSaran('${sfx}')" onfocus="perbaruiSaran('${sfx}')">
+        ${selectGampongHtml(sfx, p.kecamatan, p.desa)}
       </div>
     </div>`;
 }
 function bacaLokasi(sfx){
   const kecamatan = wajib('f-kec'+sfx, 'Pilih kecamatan terlebih dahulu');
-  const desa = samakanGampong(kecamatan, wajib('f-desa'+sfx, 'Isi nama Gampong/Desa'));
+  const desa = samakanGampong(kecamatan, wajib('f-desa'+sfx, 'Pilih Gampong/Desa'));
   document.getElementById('f-desa'+sfx).value = desa;
   return { kecamatan, desa };
 }
