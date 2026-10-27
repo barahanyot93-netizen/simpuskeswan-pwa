@@ -397,6 +397,7 @@
   .dx-chip.dx-ob{color:#1B5E7A;} .dx-chip.dx-ob i{background:#2A88AE;} .dx-chip.dx-ob:hover{border-color:#2A88AE; background:#E6F3F8;}
   .dx-chip.dx-ob.aktif{background:#1B5E7A; color:#fff; border-color:#1B5E7A;} .dx-chip.dx-ob.aktif i{background:#fff;}
   .dx-chip.dx-non.aktif{background:#2E7D32; color:#fff; border-color:#2E7D32;} .dx-chip.dx-non.aktif i{background:#fff;}
+  .stat-note{font-size:11px; color:var(--text-muted); margin-top:2px;}
 </style>
 </head>
 <body>
@@ -494,6 +495,12 @@
           <div style="text-align:center; margin-bottom:20px;">
             <h2 style="margin:0; font-size:17px; color:var(--primary-dark); line-height:1.4;">UPTD PUSKESWAN WILAYAH II<br>DINAS PERKEBUNAN DAN PETERNAKAN<br>KABUPATEN ACEH BARAT</h2>
           </div>
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-ic">🐄</div><div class="stat-num" id="stat-ternak">0</div><div class="stat-label">Total Jumlah Data Hewan</div><div class="stat-note">ekor tercatat (Pelayanan, Konsultasi &amp; Vaksinasi)</div></div>
+            <div class="stat-card c-accent"><div class="stat-ic">👨‍🌾</div><div class="stat-num" id="stat-peternak">0</div><div class="stat-label">Total Jumlah Pemilik Terdaftar</div></div>
+            <div class="stat-card c-success"><div class="stat-ic">💉</div><div class="stat-num" id="stat-pelayanan">0</div><div class="stat-label">Pelayanan Bulan Ini</div></div>
+            <div class="stat-card c-danger"><div class="stat-ic">🦠</div><div class="stat-num" id="stat-vaksinasi">0</div><div class="stat-label">Vaksinasi Bulan Ini</div></div>
+          </div>
           <div class="dash-grid">
             <div class="dash-card" id="card-phms">
               <div class="dash-head">
@@ -534,6 +541,15 @@
               <table>
                 <thead><tr><th>Tanggal</th><th>Jenis Layanan</th><th>Pemilik</th><th>Petugas</th></tr></thead>
                 <tbody id="dashboard-recent"><tr><td class="empty-row" colspan="4">Memuat data...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>10 Aktivitas Vaksinasi Terbaru</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Tanggal</th><th>Jenis Vaksin</th><th>Pemilik</th><th>Gampong</th><th>Hewan</th><th>Petugas</th></tr></thead>
+                <tbody id="dashboard-vaksin"><tr><td class="empty-row" colspan="6">Memuat data...</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -1556,9 +1572,9 @@ const SISTEM_PELAYANAN = ['Aktif','Semi Aktif','Pasif'];
 // Daftar Gampong per kecamatan wilayah kerja (Arongan Lambalek 27, Woyla Barat 24, Bubon 17).
 // Bila ada penyesuaian ejaan/penambahan Gampong, cukup ubah daftar di bawah ini.
 const GAMPONG_RESMI = {
-  'Arongan Lambalek': ['Alue Bagok','Alue Batee','Alue Sundak','Arongan','Cot Buloh','Cot Juru Mudi','Cot Kumbang','Drien Rampak','Gunong Pulo','Karang Hampa','Keub','Kubu','Pante Mutia','Panton Bahagia','Panton Makmur','Peulanteu','Peuribu','Rimba Langgeh','Seuneubok Lhong','Seuneubok Teungoh','Simpang Peut','Suak Bidok','Suak Ie Beuso','Suak Keumudai','Teupin Peuraho','Ujong Beusa','Ujong Simpang'],
-  'Woyla Barat': ['Alue Keumuning','Alue Leuhop','Alue Permen','Blang Cot Mameh','Blang Cot Rubek','Blang Luah Leuhop Mameh','Cot Lagan Leuhop Mameh','Cot Rambong','Ie Sayang','Karak','Kulam Kaju','Lhok Malee','Lubuk Pasi Ara','Lueng Baro','Mon Pasong','Napai','Pasi Jeut','Pasi Malee','Pasi Mali','Pasi Panyang','Peuleukeung','Simpang Keumaron','Ule Pulo','Ulei Pasi Ara'],
-  'Bubon': ['Alue Bakong','Alue Lhok','Beurawang','Blang Sibeutong','Cot Keumuneng','Cot Lada','Gunong Panah','Kuala Pling','Kuta Padang','Layung','Liceh','Peulanteu','Rambong','Seumuleng','Seuneubok Trap','Suak Pangkat','Ulee Blang']
+  'Arongan Lambalek': ['Alue Bagok','Alue Batee','Alue Sundak','Arongan','Cot Buloh','Cot Juru Mudi','Cot Kumbang','Drien Rampak','Gunong Pulo','Karang Hampa','Keub','Kubu','Pante Mutia','Panton Bahagia','Panton Makmur','Peulanteu LB','Peuribu','Rimba Langgeh','Seuneubok Lhong','Seuneubok Teungoh','Simpang Peut','Suak Bidok','Suak Ie Beuso','Suak Keumudai','Teupin Peuraho','Ujong Beusa','Ujong Simpang'],
+  'Woyla Barat': ['Alue Keumuneng','Alue Leuhob','Alue Perman','Blang Cot Mameh','Blang Cot Rubek','Blang Luah','Cot Lagan WB','Cot Rambong','Ie Sayang','Karak','Kulam Kaju','Lhok Malee','Lubuk Pasi Ara','Lueng Baro','Mon Pasong','Napai','Pasi Jeut','Pasi Malee','Pasi Mali','Pasi Panyang','Peuleukeung','Simpang Teumaroem','Ule Pulo','Ulei Pasi Ara'],
+  'Bubon': ['Alue Bakong','Alue Lhok','Beurawang','Blang Sibeutong','Cot Keumuneng','Cot Lada','Gunong Panah','Kuala Pling','Kuta Padang','Layung','Liceh','Peulanteu SP','Rambong','Seumuleng','Seuneubok Trap','Suak Pangkat','Ulee Blang']
 };
 const STATUS_PELAYANAN = ['Sembuh','Masih Sakit','Mati','Potong Paksa','Selesai'];
 const JENIS_KONSULTASI = ['Konsultasi kesehatan ternak','Konsultasi gejala penyakit','Konsultasi vaksinasi','Konsultasi reproduksi','Konsultasi pakan dan pemeliharaan'];
@@ -1608,6 +1624,8 @@ function bangunPetaGampong(){
     const urut = Array.from(frek[kec].entries()).sort((a,b)=> b[1].n - a[1].n);
     const wakil = (GAMPONG_RESMI[kec]||[]).map(g=>({nm: normTeks(g), tampil: g}));
     urut.forEach(([nm, e])=>{
+      const al = (GAMPONG_ALIAS[kec] || {})[nm];
+      if(al){ peta.set(kec+'|'+nm, al); return; }
       const w = wakil.find(x=> x.nm === nm) || wakil.find(x=> miripGampong(x.nm, nm));
       if(w){ peta.set(kec+'|'+nm, w.tampil); }
       else{
@@ -1714,9 +1732,17 @@ function selPemilikHtml(rec){
 }
 
 // Blok isian pemilik: Kecamatan, Gampong/Desa, Nama Pemilik (+ NIK untuk vaksinasi)
+// Ejaan lama/variasi yang otomatis diarahkan ke nama resmi (data lama tetap terbaca dengan benar)
+const GAMPONG_ALIAS = {
+  'Arongan Lambalek': {'peulanteu':'Peulanteu LB'},
+  'Woyla Barat': {'alue keumuning':'Alue Keumuneng','alue leuhop':'Alue Leuhob','alue permen':'Alue Perman','blang luah leuhop mameh':'Blang Luah','cot lagan leuhop mameh':'Cot Lagan WB','cot lagan':'Cot Lagan WB','simpang keumaron':'Simpang Teumaroem'},
+  'Bubon': {'peulanteu':'Peulanteu SP'}
+};
 function resmiGampong(kec, desa){
   const nd = normTeks(desa);
   if(!nd) return '';
+  const al = (GAMPONG_ALIAS[kec] || {})[nd];
+  if(al) return al;
   const daftar = GAMPONG_RESMI[kec] || [];
   return daftar.find(g=> normTeks(g) === nd) || daftar.find(g=> miripGampong(normTeks(g), nd)) || '';
 }
@@ -1995,6 +2021,8 @@ const tagStatusPHMS = (st)=> `<span class="tag tag-${st.toLowerCase()}">${labelS
 function renderDashboard(){
   _petaGampong = null;
   if(!document.getElementById('card-populasi')) return;
+  renderDashboardKartu();
+  renderDashboardVaksin();
 
   // 1. Populasi per spesies: nama spesies + jumlah total saja
   const daftar = POPULASI_SPESIES.map(s=>[s, Number(populasiTernak.data[s])||0]).filter(([,n])=>n>0);
@@ -2212,14 +2240,15 @@ const rekamHewanPelayanan = (h)=> ({ jenisTernak:h.jenis, jumlahTernak:h.jantan+
 /* ---------- Pilihan cepat Diagnosa (form Pelayanan) ----------
    Tambah/ubah daftar di dua baris berikut bila ada penyakit yang ingin dijadikan tombol baru. */
 const DIAGNOSA_PHMS_CEPAT = ['PMK / FMD','LSD','SE (Ngorok)','Rabies','Brucellosis','Anthrax','Surra','AI (Flu Burung)','Jembrana','ND (Tetelo)','ASF'];
-const DIAGNOSA_NONPHMS_CEPAT = ['Diare','Fever','Scabiosis','Avitaminosis / Defisiensi Mineral','Helminthiasis','Parasit Eksternal','Vulnus','Myiasis','Retensio Sekundina','Distokia'];
+const DIAGNOSA_NONPHMS_CEPAT = ['Anemia','Avitaminosis / Defisiensi Mineral','BEF','Diare','Distokia','Endometritis','Enteritis','Extoparasitosis','Feline Calicivirus','Feline Panleukopenia','Fever','Fraktur','Grastetani','Helminthiasis','ISPA','Mastitis','Myiasis','Orf','Pink Eye','Pneumonia','Prolapsus Uteri','Retensio Secundinae','Scabiosis','Toksisitas','Tympani/Bloat','Vulnus'];   // urut abjad; tambah penyakit baru di sini
 function diagnosaCepatHtml(){
   const chip = (t, kelas)=> `<button type="button" class="dx-chip ${kelas}" data-dx="${escapeHtml(t)}" onclick="pilihDiagnosa(this)"><i></i>${escapeHtml(t)}</button>`;
+  const urut = (a)=> a.slice().sort((x,y)=> x.localeCompare(y, 'id', {sensitivity:'base'}));
   return `<div class="dx-cepat">
-    <div class="dx-judul dx-merah">🚨 Pilihan Cepat Penyakit PHMS (KODE MERAH / Wabah):</div>
-    <div class="dx-grup">${DIAGNOSA_PHMS_CEPAT.map(t=>chip(t,'dx-phms')).join('')}</div>
     <div class="dx-judul dx-hijau">🟢 Pilihan Cepat Non-PHMS (Kasus Umum / Rutin):</div>
-    <div class="dx-grup">${DIAGNOSA_NONPHMS_CEPAT.map(t=>chip(t,'dx-non')).join('')}</div>
+    <div class="dx-grup">${urut(DIAGNOSA_NONPHMS_CEPAT).map(t=>chip(t,'dx-non')).join('')}</div>
+    <div class="dx-judul dx-merah" style="margin-top:12px;">🚨 Pilihan Cepat Penyakit PHMS (KODE MERAH / Wabah):</div>
+    <div class="dx-grup">${DIAGNOSA_PHMS_CEPAT.map(t=>chip(t,'dx-phms')).join('')}</div>
     <div class="hint">Klik tombol untuk mengisi Diagnosa (klik lagi untuk membatalkan; boleh pilih lebih dari satu). Penyakit yang tidak ada di tombol, ketik langsung di kotak Diagnosa.</div>
   </div>`;
 }
@@ -2236,7 +2265,7 @@ window.pilihDiagnosa = function(btn){
 };
 
 /* ---------- Pilihan cepat nama obat (urut abjad) ---------- */
-const OBAT_CEPAT = ['Vet Oxy LA','Vet Oxy SB','Duodin LA','Roxine','Procaben LA','Pentrep 4:0.5','Hematodin','Hemadex','Biodin','Vit. B-Com','Injectamin','Intracin','B-12','Calcidex Plus','Vetadryl','Sulpidon','Sulprodon','Flukicid','Verm-O Bls','Verm-O Kplt','Colibact Inj','Colibact Bls'];
+const OBAT_CEPAT = ['Vet Oxy LA','Vet Oxy SB','Duodin LA','Roxine','Procaben LA','Pentrep 4:0.5','Hematodin','Hemadex','Biodin','Vit. B-Com','Vitamin B1','Vitamin B-12','Injectamin','Intracin','Calcidex Plus','Vetadryl','Sulpidon','Sulprodon','Flukicid','Verm-O Bls','Verm-O Kplt','Colibact Inj','Colibact Bls','Ivomec','Dexapros','G-Mox 15% LA','Intramox 15% LA','Biosan TP','Intertrim LA'];
 function obatCepatHtml(){
   const daftar = OBAT_CEPAT.slice().sort((a,b)=> a.localeCompare(b, 'id', {sensitivity:'base', numeric:true}));
   return `<div class="dx-cepat obat-cepat">
@@ -2411,7 +2440,7 @@ function renderKonsultasiTable(list){
       <td><b>${escapeHtml(p.jenisPenyakit)||'-'}</b>${tagPhmsCatatan(p)}</td>
       <td>${selPemilikHtml(p)}</td>
       <td>${hewanCatatanHtml(p)}</td>
-      <td>${p.hasilKonsultasi ? `${escapeHtml(p.hasilKonsultasi.slice(0,90))}${p.hasilKonsultasi.length>90?'…':''}` : '-'}</td>
+      <td>${p.hasilKonsultasi ? (()=>{ const t = p.hasilKonsultasi.replace(/\n/g, '; '); return `${escapeHtml(t.slice(0,110))}${t.length>110?'…':''}`; })() : '-'}</td>
       <td>${escapeHtml(p.petugasNama)||'-'}<br>${roleBadge(p.petugasRole)}</td>
       <td>${tombolAksiHtml(p, 'editKonsultasi')}</td>
     </tr>`).join('');
@@ -2420,6 +2449,93 @@ document.getElementById('search-konsultasi')?.addEventListener('input', (e)=>{
   const q = e.target.value.toLowerCase();
   renderKonsultasiTable(konsultasiCache.filter(p => [p.jenisPenyakit, p.namaPeternak, p.desa, p.hasilKonsultasi].some(v=>(v||'').toLowerCase().includes(q))));
 });
+/* Kolom khusus per Jenis Konsultasi. w:true = wajib diisi. Ubah di sini bila ingin menambah/mengurangi kolom. */
+const JENIS_VAKSIN_KONSULTASI = ['PMK','LSD','SE','Brucellosis','ND','AI','Rabies','Lainnya'];
+const KONSULTASI_FIELD = {
+  'Konsultasi kesehatan ternak': [
+    {k:'keluhanUtama', l:'Keluhan Utama', t:'textarea', w:true, ph:'Keluhan yang disampaikan pemilik'},
+    {k:'lamaKeluhan', l:'Lama Keluhan', ph:'Contoh: 3 hari'},
+    {k:'perubahanKondisi', l:'Perubahan Kondisi Hewan', ph:'Contoh: nafsu makan turun, tampak lemas'},
+    {k:'riwayatPerawatan', l:'Riwayat Perawatan', ph:'Perawatan/pengobatan yang sudah dilakukan'},
+    {k:'hasilPenilaian', l:'Hasil Penilaian', t:'textarea', w:true, ph:'Penilaian petugas terhadap kondisi hewan'},
+    {k:'saranKesehatan', l:'Saran Kesehatan', t:'textarea', ph:'Saran yang diberikan kepada pemilik'},
+    {k:'tindakLanjut', l:'Tindak Lanjut', ph:'Contoh: kunjungan ulang 3 hari lagi'}
+  ],
+  'Konsultasi gejala penyakit': [
+    {k:'gejalaKlinis', l:'Gejala Klinis', t:'textarea', w:true, ph:'Contoh: demam, nafsu makan turun, pincang, leleran hidung'},
+    {k:'waktuGejala', l:'Waktu Munculnya Gejala', ph:'Contoh: 2 hari yang lalu / 12 Oktober 2026'},
+    {k:'jumlahSakit', l:'Jumlah Sakit (ekor)', t:'number', ph:'0'},
+    {k:'jumlahMati', l:'Jumlah Mati (ekor)', t:'number', ph:'0'},
+    {k:'riwayatKontak', l:'Riwayat Kontak', ph:'Contoh: baru membeli ternak, kontak dengan ternak tetangga'},
+    {k:'riwayatPengobatan', l:'Riwayat Pengobatan', ph:'Obat yang sudah diberikan'},
+    {k:'penilaianAwal', l:'Penilaian Awal', ph:'Penilaian awal petugas'},
+    {k:'dugaanPenyakit', l:'Dugaan Penyakit', w:true, ph:'Contoh: PMK, Scabiosis (bila PHMS, status kasus otomatis menyesuaikan)', hook:'sinkronDugaanKonsultasi()'},
+    {k:'tindakanLanjutan', l:'Tindakan Lanjutan', ph:'Contoh: pengambilan sampel, isolasi, kunjungan lapangan'}
+  ],
+  'Konsultasi vaksinasi': [
+    {k:'tujuanKonsultasi', l:'Tujuan Konsultasi', w:true, ph:'Contoh: menanyakan jadwal vaksin PMK'},
+    {k:'jenisVaksin', l:'Jenis Vaksin', t:'select', opsi:JENIS_VAKSIN_KONSULTASI, w:true},
+    {k:'riwayatVaksinasi', l:'Riwayat Vaksinasi', ph:'Contoh: terakhir divaksin Maret 2026'},
+    {k:'jumlahSasaran', l:'Jumlah Sasaran (ekor)', t:'number', ph:'0'},
+    {k:'kondisiHewan', l:'Kondisi Hewan', ph:'Contoh: sehat / sedang sakit'},
+    {k:'saranJadwal', l:'Saran Jadwal', ph:'Contoh: vaksinasi ulang 6 bulan lagi'},
+    {k:'statusVaksinasi', l:'Status Vaksinasi', t:'select', opsi:['Belum pernah divaksin','Sudah divaksin','Perlu vaksinasi ulang','Dijadwalkan']}
+  ],
+  'Konsultasi reproduksi': [
+    {k:'keluhanReproduksi', l:'Keluhan Reproduksi', t:'textarea', w:true, ph:'Contoh: sulit bunting, tidak birahi'},
+    {k:'umurTernak', l:'Umur Ternak', ph:'Contoh: 3 tahun'},
+    {k:'riwayatBirahi', l:'Riwayat Birahi', ph:'Contoh: birahi terakhir 3 minggu lalu'},
+    {k:'tanggalKawinIB', l:'Tanggal Kawin atau IB', t:'date'},
+    {k:'riwayatKebuntingan', l:'Riwayat Kebuntingan', ph:'Contoh: sudah 2 kali bunting'},
+    {k:'riwayatKelahiran', l:'Riwayat Kelahiran', ph:'Contoh: terakhir melahirkan Juni 2026'},
+    {k:'penilaianAwal', l:'Penilaian Awal', ph:'Penilaian awal petugas'},
+    {k:'tindakLanjut', l:'Tindak Lanjut', ph:'Contoh: pemeriksaan kebuntingan, IB ulang'}
+  ],
+  'Konsultasi pakan dan pemeliharaan': [
+    {k:'jenisPakan', l:'Jenis Pakan', w:true, ph:'Contoh: rumput lapangan, dedak, konsentrat'},
+    {k:'jumlahPakan', l:'Perkiraan Jumlah Pakan', ph:'Contoh: 10 kg/ekor/hari'},
+    {k:'frekuensiPakan', l:'Frekuensi Pemberian', ph:'Contoh: 2 kali sehari'},
+    {k:'airMinum', l:'Ketersediaan Air Minum', t:'select', opsi:['Tersedia cukup','Terbatas','Tidak tersedia']},
+    {k:'sistemPemeliharaan', l:'Sistem Pemeliharaan', t:'select', opsi:['Intensif (dikandangkan)','Semi intensif','Ekstensif (dilepas)']},
+    {k:'kondisiKandang', l:'Kondisi Kandang', t:'select', opsi:['Baik','Cukup','Kurang']},
+    {k:'saranPerbaikan', l:'Saran Perbaikan', t:'textarea', ph:'Saran yang diberikan kepada pemilik'},
+    {k:'tindakLanjut', l:'Tindak Lanjut', ph:'Contoh: kunjungan ulang, penyuluhan'}
+  ]
+};
+function fieldKonsultasiHtml(f, val){
+  const id = 'f-ks-' + f.k;
+  const v = val === undefined || val === null ? '' : val;
+  let inp;
+  if(f.t === 'textarea') inp = `<textarea id="${id}" rows="2" placeholder="${escapeHtml(f.ph||'')}">${escapeHtml(v)}</textarea>`;
+  else if(f.t === 'select') inp = `<select id="${id}">${opsiSelectHtml(f.opsi, v)}</select>`;
+  else inp = `<input id="${id}" type="${f.t||'text'}" ${f.t==='number'?'min="0"':''} value="${escapeHtml(v)}" placeholder="${escapeHtml(f.ph||'')}" ${f.hook?`oninput="${f.hook}"`:''}>`;
+  return `<div class="field"><label>${escapeHtml(f.l)}${f.w ? ' <span class="req">*</span>' : ''}</label>${inp}</div>`;
+}
+window.gantiFieldKonsultasi = function(awal){
+  const box = document.getElementById('konsultasi-dinamis');
+  if(!box) return;
+  const jenis = gv('f-jeniskonsultasi');
+  const cfg = KONSULTASI_FIELD[jenis];
+  if(!cfg){ box.innerHTML = '<div class="hint" style="margin:-4px 0 12px;">Pilih Jenis Konsultasi, kolom isian khusus akan tampil di sini.</div>'; return; }
+  const data = (awal && awal.detailKonsultasi) || (awal && awal.hasilKonsultasi ? {[cfg[0].k]: awal.hasilKonsultasi} : {});
+  box.innerHTML = cfg.map(f=> fieldKonsultasiHtml(f, data[f.k])).join('');
+};
+window.sinkronDugaanKonsultasi = function(){
+  const st = document.getElementById('f-statusphms'), pen = document.getElementById('f-penyakitphms');
+  if(!st || !pen) return;
+  const teks = gv('f-ks-dugaanPenyakit');
+  const cocok = cocokPHMS(teks);
+  if(cocok.length){
+    if(st.value === 'Tidak') st.value = 'Suspect';   // dugaan dari konsultasi belum terkonfirmasi; bisa diganti Tertular
+    if(!cocok.includes(pen.value)) pen.value = cocok[0];
+  }else if(teks){
+    st.value = 'Tidak';
+  }
+  perbaruiPHMS();
+};
+function ringkasKonsultasi(cfg, detail){
+  return cfg.filter(f=> detail[f.k] !== '' && detail[f.k] !== undefined).map(f=> `${f.l}: ${detail[f.k]}`).join('\n');
+}
 function konsultasiFormHtml(p={}, edit=false){
   return `<div class="form-stack">
     <div class="form-note">Kotak bertanda <span class="req">*</span> wajib diisi.</div>
@@ -2429,11 +2545,9 @@ function konsultasiFormHtml(p={}, edit=false){
     ${ownerFormHtml('', p)}
     ${hewanBlokHtml('', p, false, edit)}
     <div class="field"><label>Jenis Konsultasi <span class="req">*</span></label>
-      <select id="f-jeniskonsultasi">${opsiSelectHtml(JENIS_KONSULTASI, p.jenisPenyakit)}</select>
+      <select id="f-jeniskonsultasi" onchange="gantiFieldKonsultasi()">${opsiSelectHtml(JENIS_KONSULTASI, p.jenisPenyakit)}</select>
     </div>
-    <div class="field"><label>Hasil Konsultasi <span class="req">*</span></label>
-      <textarea id="f-hasilkonsultasi" rows="3" placeholder="Wajib diisi — tulis hasil/saran konsultasi yang diberikan kepada pemilik">${escapeHtml(p.hasilKonsultasi)}</textarea>
-    </div>
+    <div id="konsultasi-dinamis"></div>
     ${phmsBlokHtml(p)}
     ${petugasFieldHtml(p)}
     <div class="field"><label>Catatan</label>
@@ -2447,10 +2561,15 @@ async function kumpulDataKonsultasi(){
     const tglStr = wajib('f-tglpelayanan', 'Isi tanggal konsultasi');
     const pemilik = bacaPemilik('');
     const hewan = bacaHewan('', false);
+    const jenisKonsultasi = wajib('f-jeniskonsultasi', 'Pilih jenis konsultasi');
+    const cfg = KONSULTASI_FIELD[jenisKonsultasi] || [];
+    const detail = {};
+    cfg.forEach(f=>{ detail[f.k] = f.w ? wajib('f-ks-' + f.k, 'Isi ' + f.l.toLowerCase()) : gv('f-ks-' + f.k); });
     const d = {
       jenisLayanan: 'Konsultasi', tanggal: new Date(tglStr), catatan: gv('f-catatan'),
-      jenisPenyakit: wajib('f-jeniskonsultasi', 'Pilih jenis konsultasi'),   // jenis konsultasi disimpan di field ini (kompatibel data lama)
-      hasilKonsultasi: wajib('f-hasilkonsultasi', 'Isi hasil konsultasi'),
+      jenisPenyakit: jenisKonsultasi,   // jenis konsultasi disimpan di field ini (kompatibel data lama)
+      detailKonsultasi: detail,
+      hasilKonsultasi: ringkasKonsultasi(cfg, detail),
       anamnesa: '', terapi: '', status: 'Selesai', sistemPelayanan: '',
       ...bacaPHMS()
     };
@@ -2465,7 +2584,7 @@ document.getElementById('btn-add-konsultasi')?.addEventListener('click', ()=>{
     showToast('Data konsultasi tersimpan');
     closeModal();
   });
-  perbaruiPHMS(); perbaruiSaran('');
+  gantiFieldKonsultasi(); perbaruiPHMS(); perbaruiSaran('');
 });
 window.editKonsultasi = function(id){
   const p = konsultasiCache.find(x=>x.id===id);
@@ -2479,7 +2598,7 @@ window.editKonsultasi = function(id){
     showToast('Data konsultasi diperbarui');
     closeModal();
   });
-  perbaruiPHMS(); perbaruiSaran('');
+  gantiFieldKonsultasi(p); perbaruiPHMS(); perbaruiSaran('');
 };
 
 /* ---------- PEMERIKSAAN KESEHATAN HEWAN ---------- */
@@ -2636,6 +2755,33 @@ window.editPemeriksaan = function(id){
   if(!lama) perbaruiSaran('');
 };
 
+function renderDashboardKartu(){
+  const set = (id, v)=>{ const e = document.getElementById(id); if(e) e.textContent = v; };
+  const sekarang = new Date(), bln = sekarang.getMonth(), thn = sekarang.getFullYear();
+  const tgl = (p)=> p.tanggal?.toDate ? p.tanggal.toDate() : new Date(p.tanggal);
+  const bulanIni = (p)=>{ const d = tgl(p); return d.getMonth() === bln && d.getFullYear() === thn; };
+  const entriUnik = (list)=> new Set(list.map(p=> p.entriId || p.id)).size;
+  const ekor = (list)=> list.reduce((a,p)=> a + (Number(p.jumlahTernak)||0), 0);
+  const lama = ternakCache.reduce((a,t)=> a + (Number(t.jumlah)||0), 0);   // data hewan lama (menu Data Hewan sebelumnya)
+  set('stat-ternak', (lama + ekor(pelayananSemua.filter(p=>p.jenisLayanan==='Pengobatan'||p.jenisLayanan==='Bedah Minor'||p.jenisLayanan==='Konsultasi')) + ekor(vaksinasiCache)).toLocaleString('id-ID'));
+  set('stat-peternak', peternakCache.length.toLocaleString('id-ID'));
+  set('stat-pelayanan', entriUnik(pelayananCache.filter(bulanIni)));
+  set('stat-vaksinasi', entriUnik(vaksinasiCache.filter(bulanIni)));
+}
+function renderDashboardVaksin(){
+  const tbody = document.getElementById('dashboard-vaksin');
+  if(!tbody) return;
+  const urut = vaksinasiCache.slice().sort((a,b)=>{ const ta = a.tanggal?.toDate ? a.tanggal.toDate() : new Date(a.tanggal); const tb = b.tanggal?.toDate ? b.tanggal.toDate() : new Date(b.tanggal); return tb - ta; });
+  const terbaru = []; const dilihat = new Set();
+  for(const v of urut){ const k = v.entriId || v.id; if(dilihat.has(k)) continue; dilihat.add(k); terbaru.push(v); if(terbaru.length >= 10) break; }
+  if(terbaru.length === 0){ tbody.innerHTML = '<tr><td class="empty-row" colspan="6">Belum ada data vaksinasi</td></tr>'; return; }
+  tbody.innerHTML = terbaru.map(v=>{
+    const grup = vaksinasiCache.filter(x=> (x.entriId || x.id) === (v.entriId || v.id));
+    const hewan = grup.map(x=> `${x.jenisHewan||x.jenisTernak||'-'} ${Number(x.jumlahTernak)||0} ekor`).join(', ');
+    const a = alamatRec(v);
+    return `<tr><td>${fmtDate(v.tanggal)}</td><td><b>${escapeHtml(v.jenisVaksin)||'-'}</b></td><td>${escapeHtml(v.namaPeternak)||'-'}</td><td>${escapeHtml(a.desa)||'-'}</td><td>${escapeHtml(hewan)}</td><td>${escapeHtml(v.petugasNama)||'-'}</td></tr>`;
+  }).join('');
+}
 function renderDashboardRecent(){
   const tbody = document.getElementById('dashboard-recent');
   const recent = pelayananCache.slice(0,6);
@@ -2928,9 +3074,9 @@ const LAPORAN_LAIN = {
       const totalEntri = new Set(data.map(p=>p.entriId || p.id)).size;
       return {
         rekap: tabelRekapHtml(['No','Jenis Konsultasi','Jumlah Konsultasi','Jumlah Hewan'], baris, ['JUMLAH', totalEntri, jumlahkan(data,p=>p.jumlahTernak)+' ekor']),
-        head: '<tr><th>No</th><th>Tanggal</th><th>Kecamatan</th><th>Gampong</th><th>Pemilik</th><th>Jenis Konsultasi</th><th>Hewan</th><th>Hasil Konsultasi</th><th>Petugas</th></tr>',
-        rows: data.map((p,i)=>{ const a = alamatRec(p); return `<tr><td>${i+1}</td><td>${fmtDate(p.tanggal)}</td><td>${escapeHtml(a.kec)}</td><td>${escapeHtml(a.desa)}</td><td>${escapeHtml(p.namaPeternak)||'-'}</td><td>${escapeHtml(p.jenisPenyakit)||'-'}</td><td>${escapeHtml((p.jenisTernak||'-')+' ('+fmtEkorSexDlmKurung(p)+')')}</td><td>${escapeHtml(p.hasilKonsultasi)||'-'}</td><td>${escapeHtml(p.petugasNama)||'-'}</td></tr>`; }),
-        excel: data.map((p,i)=>{ const a = alamatRec(p); return {No:i+1, Tanggal:fmtDate(p.tanggal), Kecamatan:a.kec, Gampong:a.desa, Pemilik:p.namaPeternak||'-', 'Jenis Konsultasi':p.jenisPenyakit||'-', 'Jenis Hewan':p.jenisTernak||'-', 'Jumlah Ekor':p.jumlahTernak||0, '♂ Jantan':p.jantan||0, '♀ Betina':p.betina||0, 'Hasil Konsultasi':p.hasilKonsultasi||'-', 'Status PHMS':p.statusPHMS&&p.statusPHMS!=='Tidak'?p.statusPHMS+' '+(p.penyakitPHMS||''):'-', Petugas:p.petugasNama||'-', Catatan:p.catatan||''}; })
+        head: '<tr><th>No</th><th>Tanggal</th><th>Kecamatan</th><th>Gampong</th><th>Pemilik</th><th>Jenis Konsultasi</th><th>Hewan</th><th>Rincian Konsultasi</th><th>Petugas</th></tr>',
+        rows: data.map((p,i)=>{ const a = alamatRec(p); return `<tr><td>${i+1}</td><td>${fmtDate(p.tanggal)}</td><td>${escapeHtml(a.kec)}</td><td>${escapeHtml(a.desa)}</td><td>${escapeHtml(p.namaPeternak)||'-'}</td><td>${escapeHtml(p.jenisPenyakit)||'-'}</td><td>${escapeHtml((p.jenisTernak||'-')+' ('+fmtEkorSexDlmKurung(p)+')')}</td><td style="text-align:left;">${escapeHtml(p.hasilKonsultasi||'-').replace(/\n/g,'<br>')}</td><td>${escapeHtml(p.petugasNama)||'-'}</td></tr>`; }),
+        excel: data.map((p,i)=>{ const a = alamatRec(p); return {No:i+1, Tanggal:fmtDate(p.tanggal), Kecamatan:a.kec, Gampong:a.desa, Pemilik:p.namaPeternak||'-', 'Jenis Konsultasi':p.jenisPenyakit||'-', 'Jenis Hewan':p.jenisTernak||'-', 'Jumlah Ekor':p.jumlahTernak||0, '♂ Jantan':p.jantan||0, '♀ Betina':p.betina||0, 'Rincian Konsultasi':(p.hasilKonsultasi||'-').replace(/\n/g,'; '), 'Status PHMS':p.statusPHMS&&p.statusPHMS!=='Tidak'?p.statusPHMS+' '+(p.penyakitPHMS||''):'-', Petugas:p.petugasNama||'-', Catatan:p.catatan||''}; })
       };
     }
   },
