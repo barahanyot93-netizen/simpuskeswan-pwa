@@ -398,6 +398,15 @@
   .dx-chip.dx-ob.aktif{background:#1B5E7A; color:#fff; border-color:#1B5E7A;} .dx-chip.dx-ob.aktif i{background:#fff;}
   .dx-chip.dx-non.aktif{background:#2E7D32; color:#fff; border-color:#2E7D32;} .dx-chip.dx-non.aktif i{background:#fff;}
   .stat-note{font-size:11px; color:var(--text-muted); margin-top:2px;}
+  .spesies-grup{border:1.5px solid var(--primary); border-radius:12px; padding:12px 14px; margin-bottom:14px; background:#F7F9F4;}
+  .spesies-head{display:flex; gap:10px; align-items:flex-end; margin-bottom:10px;}
+  .kasus-list{counter-reset:ks;}
+  .kasus-row{counter-increment:ks; border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:10px; background:#fff;}
+  .kasus-row::before{content:'Penyakit / Kasus ' counter(ks); display:block; font-size:12px; font-weight:800; color:var(--primary-dark); margin-bottom:8px; text-transform:uppercase; letter-spacing:.04em;}
+  .kasus-head{float:right; margin-top:-4px;}
+  .jb{display:flex; align-items:center; gap:8px; flex-wrap:wrap;} .jb input{width:90px;} .jb span{font-size:12.5px; font-weight:600;}
+  .k-cepat{margin:0 0 12px;} .k-cepat summary{cursor:pointer; font-size:12.5px; font-weight:700; color:var(--primary); margin-bottom:8px;}
+  .k-cepat .dx-cepat{margin:6px 0 0;}
 </style>
 </head>
 <body>
@@ -2333,15 +2342,200 @@ window.penyakitPHMSDiubah = function(){
 };
 
 /* ---------- PELAYANAN (Pengobatan, Bedah Minor) ---------- */
+/* ---------- Form Pelayanan: satu pemilik, beberapa spesies, tiap spesies bisa beberapa penyakit ---------- */
+function chipsDiagnosaRow(){
+  const urut = (a)=> a.slice().sort((x,y)=> x.localeCompare(y, 'id', {sensitivity:'base'}));
+  const chip = (t, kelas)=> `<button type="button" class="dx-chip ${kelas}" data-dx="${escapeHtml(t)}" onclick="kPilihDx(this)"><i></i>${escapeHtml(t)}</button>`;
+  return `<div class="dx-judul dx-hijau">🟢 Pilihan Cepat Non-PHMS (Kasus Umum / Rutin):</div>
+    <div class="dx-grup">${urut(DIAGNOSA_NONPHMS_CEPAT).map(t=>chip(t,'dx-non')).join('')}</div>
+    <div class="dx-judul dx-merah" style="margin-top:12px;">🚨 Pilihan Cepat Penyakit PHMS (KODE MERAH / Wabah):</div>
+    <div class="dx-grup">${DIAGNOSA_PHMS_CEPAT.map(t=>chip(t,'dx-phms')).join('')}</div>`;
+}
+function chipsObatRow(){
+  const daftar = OBAT_CEPAT.slice().sort((a,b)=> a.localeCompare(b, 'id', {sensitivity:'base', numeric:true}));
+  return `<div class="dx-judul dx-obat" style="margin-top:12px;">💊 Pilihan Cepat Nama Obat:</div>
+    <div class="dx-grup">${daftar.map(t=>`<button type="button" class="dx-chip dx-ob" data-ob="${escapeHtml(t)}" onclick="kPilihObat(this)"><i></i>${escapeHtml(t)}</button>`).join('')}</div>`;
+}
+function kasusRowHtml(k={}, bisaHapus=true, buka=true){
+  const dx = k.jenisPenyakit || '', ob = k.terapi || '';
+  let jantan = k.jantan, betina = k.betina;
+  if(jantan === undefined && betina === undefined && k.sexHewan){ if(k.sexHewan === 'Jantan') jantan = k.jumlahTernak; else betina = k.jumlahTernak; }
+  const lama = (k.jenisTernak && jantan === undefined && betina === undefined && k.jumlahTernak)
+    ? `<div class="hint">Data lama tercatat ${escapeHtml(k.jumlahTernak)} ekor tanpa jenis kelamin. Isi pembagian ♂ dan ♀.</div>` : '';
+  const cocok = cocokPHMS(dx);
+  const stPhms = k.statusPHMS || (cocok.length ? 'Tertular' : 'Tidak');
+  const peny = k.penyakitPHMS || cocok[0] || '';
+  const pilihanStatus = [['Tidak','Bukan kasus PHMS'],['Suspect','Suspect — dugaan, belum terkonfirmasi'],['Tertular','Tertular — terkonfirmasi']];
+  return `<div class="kasus-row">
+    <div class="kasus-head">${bisaHapus ? '<button type="button" class="btn btn-ghost btn-sm" onclick="hapusKasus(this)">🗑 Hapus kasus ini</button>' : ''}</div>
+    <div class="field"><label>Diagnosa Penyakit <span class="req">*</span></label>
+      <input class="k-dx" value="${escapeHtml(dx)}" placeholder="Wajib diisi — pilih tombol pilihan cepat di bawah atau ketik sendiri" oninput="kSinkron(this)">
+    </div>
+    <div class="field"><label>Jumlah Ekor Kasus Ini <span class="req">*</span></label>
+      <div class="jb"><span>♂ Jantan</span><input type="number" class="k-jantan" min="0" value="${jantan === undefined ? '' : escapeHtml(jantan)}" placeholder="0"><span>♀ Betina</span><input type="number" class="k-betina" min="0" value="${betina === undefined ? '' : escapeHtml(betina)}" placeholder="0"></div>${lama}
+    </div>
+    <div class="field"><label>Obat yang Digunakan <span class="req">*</span></label>
+      <input class="k-obat" value="${escapeHtml(ob)}" placeholder="Wajib diisi — pilih tombol obat di bawah atau ketik sendiri" oninput="kSinkronObat(this)">
+    </div>
+    <details class="k-cepat" ${buka ? 'open' : ''}><summary>⚡ Pilihan cepat diagnosa &amp; obat</summary>
+      <div class="dx-cepat">${chipsDiagnosaRow()}${chipsObatRow()}
+      <div class="hint">Klik tombol untuk mengisi (klik lagi untuk membatalkan; boleh lebih dari satu). Yang tidak ada di tombol, ketik langsung di kotaknya.</div></div>
+    </details>
+    <div class="row2">
+      <div class="field"><label>Status Pelayanan <span class="req">*</span></label>
+        <select class="k-status">${opsiSelectHtml(STATUS_PELAYANAN, k.status)}</select>
+      </div>
+      <div class="field"><label>Status Kasus PHMS</label>
+        <select class="k-phms" onchange="kPhmsDiubah(this)">${pilihanStatus.map(([v,l])=>`<option value="${v}" ${stPhms===v?'selected':''}>${l}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="field k-peny-wrap" style="${stPhms === 'Tidak' ? 'display:none;' : ''}"><label>Penyakit PHMS <span class="req">*</span></label>
+      <select class="k-peny" onchange="kPenyDiubah(this)">${opsiSelectHtml(PHMS_DAFTAR.map(d=>d.nama), peny)}</select>
+    </div>
+  </div>`;
+}
+function grupSpesiesHtml(g={}, bisaTambah=true){
+  const kasus = (g.kasus && g.kasus.length) ? g.kasus : [{}];
+  return `<div class="spesies-grup">
+    <div class="spesies-head">
+      <div class="field" style="margin:0; flex:1;"><label>Jenis Hewan <span class="req">*</span></label>
+        <select class="g-jenis">${opsiSelectHtml(JENIS_HEWAN, g.jenis)}</select>
+      </div>
+      ${bisaTambah ? '<button type="button" class="btn btn-danger btn-sm" onclick="hapusSpesiesGrup(this)">Hapus spesies</button>' : ''}
+    </div>
+    <div class="kasus-list">${kasus.map((k,i)=> kasusRowHtml(k, bisaTambah && kasus.length > 1, bisaTambah ? i === kasus.length-1 : true)).join('')}</div>
+    ${bisaTambah ? '<button type="button" class="btn btn-ghost btn-sm" onclick="tambahKasus(this)">+ Tambah Penyakit/Kasus Lain pada Spesies Ini</button>' : ''}
+  </div>`;
+}
+function tutupCepatLain(kecuali){
+  document.querySelectorAll('#spesies-grup-list .k-cepat').forEach(d=>{ if(d !== kecuali) d.open = false; });
+}
+window.tambahSpesiesGrup = function(){
+  const box = document.getElementById('spesies-grup-list');
+  if(!box) return;
+  box.insertAdjacentHTML('beforeend', grupSpesiesHtml({}, true));
+  const baru = box.lastElementChild;
+  tutupCepatLain(baru.querySelector('.k-cepat'));
+  baru.scrollIntoView({block:'nearest', behavior:'smooth'});
+};
+window.hapusSpesiesGrup = function(btn){
+  const box = document.getElementById('spesies-grup-list');
+  if(box.querySelectorAll('.spesies-grup').length <= 1){ showToast('Minimal satu spesies hewan', true); return; }
+  btn.closest('.spesies-grup').remove();
+};
+window.tambahKasus = function(btn){
+  const grup = btn.closest('.spesies-grup'), list = grup.querySelector('.kasus-list');
+  list.insertAdjacentHTML('beforeend', kasusRowHtml({}, true, true));
+  // kasus pertama pada spesies ini ikut bisa dihapus setelah ada lebih dari satu
+  if(list.querySelectorAll('.kasus-row').length === 2){
+    const pertama = list.querySelector('.kasus-row .kasus-head');
+    if(pertama && !pertama.innerHTML.trim()) pertama.innerHTML = '<button type="button" class="btn btn-ghost btn-sm" onclick="hapusKasus(this)">🗑 Hapus kasus ini</button>';
+  }
+  const baru = list.lastElementChild;
+  tutupCepatLain(baru.querySelector('.k-cepat'));
+  baru.scrollIntoView({block:'nearest', behavior:'smooth'});
+};
+window.hapusKasus = function(btn){
+  const list = btn.closest('.kasus-list');
+  if(list.querySelectorAll('.kasus-row').length <= 1){ showToast('Minimal satu kasus per spesies', true); return; }
+  btn.closest('.kasus-row').remove();
+  if(list.querySelectorAll('.kasus-row').length === 1){ const h = list.querySelector('.kasus-row .kasus-head'); if(h) h.innerHTML = ''; }
+};
+const pecahDaftar = (t)=> (t||'').split(/\s*[,;\n]\s*/).filter(Boolean);
+window.kSinkron = function(el){
+  const row = el.closest('.kasus-row'), dx = row.querySelector('.k-dx');
+  const isi = pecahDaftar(dx.value).map(x=>x.toLowerCase());
+  row.querySelectorAll('.dx-chip[data-dx]').forEach(c=> c.classList.toggle('aktif', isi.includes(c.dataset.dx.toLowerCase())));
+  const st = row.querySelector('.k-phms'), peny = row.querySelector('.k-peny'), wrap = row.querySelector('.k-peny-wrap');
+  const cocok = cocokPHMS(dx.value);
+  if(cocok.length){
+    if(st.value === 'Tidak') st.value = 'Tertular';
+    if(!cocok.includes(peny.value)) peny.value = cocok[0];
+  }else{
+    st.value = 'Tidak';
+  }
+  wrap.style.display = st.value === 'Tidak' ? 'none' : '';
+};
+window.kSinkronObat = function(el){
+  const row = el.closest('.kasus-row');
+  const isi = pecahDaftar(row.querySelector('.k-obat').value).map(x=>x.toLowerCase());
+  row.querySelectorAll('.dx-ob').forEach(c=> c.classList.toggle('aktif', isi.includes(c.dataset.ob.toLowerCase())));
+};
+function togelDaftar(input, label){
+  const daftar = pecahDaftar(input.value);
+  const idx = daftar.findIndex(x=>x.toLowerCase() === label.toLowerCase());
+  if(idx >= 0) daftar.splice(idx, 1); else daftar.push(label);
+  input.value = daftar.join(', ');
+}
+window.kPilihDx = function(btn){
+  const row = btn.closest('.kasus-row'), dx = row.querySelector('.k-dx');
+  togelDaftar(dx, btn.dataset.dx);
+  dx.closest('.field').classList.remove('invalid');
+  kSinkron(dx);
+};
+window.kPilihObat = function(btn){
+  const row = btn.closest('.kasus-row'), ob = row.querySelector('.k-obat');
+  togelDaftar(ob, btn.dataset.ob);
+  ob.closest('.field').classList.remove('invalid');
+  kSinkronObat(ob);
+};
+window.kPhmsDiubah = function(sel){
+  const row = sel.closest('.kasus-row'), dx = row.querySelector('.k-dx');
+  if(sel.value === 'Tidak'){
+    dx.value = pecahDaftar(dx.value).filter(x=> !cocokPHMS(x).length).join(', ');   // buang penyakit PHMS dari diagnosa
+    kSinkron(dx);
+    return;
+  }
+  row.querySelector('.k-peny-wrap').style.display = '';
+  kPenyDiubah(row.querySelector('.k-peny'));
+};
+window.kPenyDiubah = function(sel){
+  const row = sel.closest('.kasus-row'), dx = row.querySelector('.k-dx'), st = row.querySelector('.k-phms');
+  if(st.value === 'Tidak' || !sel.value) return;
+  if(!cocokPHMS(dx.value).includes(sel.value)){
+    const chip = Array.from(row.querySelectorAll('.dx-phms')).find(c=> cocokPHMS(c.dataset.dx)[0] === sel.value);
+    const sisa = pecahDaftar(dx.value).filter(x=> !cocokPHMS(x).length);
+    sisa.push(chip ? chip.dataset.dx : sel.value);
+    dx.value = sisa.join(', ');
+  }
+  kSinkron(dx);
+};
+// Baca semua spesies + kasusnya -> daftar dokumen (satu dokumen per spesies per penyakit)
+function bacaKasusPelayanan(){
+  const grups = Array.from(document.querySelectorAll('#spesies-grup-list .spesies-grup'));
+  if(!grups.length) throw new Error('Tambahkan minimal satu spesies hewan');
+  const dipakai = new Set(), hasil = [];
+  grups.forEach(g=>{
+    const selJ = g.querySelector('.g-jenis'), jenis = selJ.value;
+    if(!jenis) throw new FieldError(selJ, 'Pilih jenis hewan');
+    if(dipakai.has(jenis)) throw new FieldError(selJ, `${jenis} dipilih dua kali, gabungkan dalam satu spesies (tambahkan penyakit lain di dalamnya)`);
+    dipakai.add(jenis);
+    g.querySelectorAll('.kasus-row').forEach(r=>{
+      const dxEl = r.querySelector('.k-dx'), dx = dxEl.value.trim();
+      if(!dx) throw new FieldError(dxEl, `Isi diagnosa penyakit ${jenis}`);
+      const iJ = r.querySelector('.k-jantan'), iB = r.querySelector('.k-betina');
+      const jantan = Math.max(0, Math.floor(Number(iJ.value) || 0)), betina = Math.max(0, Math.floor(Number(iB.value) || 0));
+      if(jantan + betina < 1) throw new FieldError(iJ, `Isi jumlah ekor ${jenis} untuk kasus "${dx}": ♂ dan/atau ♀`);
+      const obEl = r.querySelector('.k-obat'), obat = obEl.value.trim();
+      if(!obat) throw new FieldError(obEl, `Isi obat yang digunakan untuk "${dx}"`);
+      const stEl = r.querySelector('.k-status');
+      if(!stEl.value) throw new FieldError(stEl, `Pilih status pelayanan untuk "${dx}"`);
+      const phms = r.querySelector('.k-phms').value, penEl = r.querySelector('.k-peny');
+      if(phms !== 'Tidak' && !penEl.value) throw new FieldError(penEl, 'Pilih penyakit PHMS');
+      hasil.push({ jenisTernak:jenis, jumlahTernak:jantan+betina, jantan, betina, jenisPenyakit:dx, terapi:obat, status:stEl.value,
+        statusPHMS:phms, penyakitPHMS: phms === 'Tidak' ? '' : penEl.value });
+    });
+  });
+  return hasil;
+}
 function pelayananFormHtml(p={}, edit=false){
   return `<div class="form-stack">
-    <div class="form-note">Kotak bertanda <span class="req">*</span> wajib diisi. Menu ini khusus Pengobatan dan Bedah Minor.</div>
+    <div class="form-note">Kotak bertanda <span class="req">*</span> wajib diisi. Menu ini khusus Pengobatan dan Bedah Minor.${edit ? '' : ' Satu pemilik boleh memiliki beberapa spesies, dan tiap spesies boleh memiliki penyakit yang berbeda-beda.'}</div>
     <div class="field"><label>Tanggal Pelayanan <span class="req">*</span></label>
       <input type="date" id="f-tglpelayanan" value="${tglInputValue(p.tanggal)}">
     </div>
     <div id="blok-pemilik" class="form-stack">
       ${ownerFormHtml('', p)}
-      ${hewanBlokHtml('', p, false, edit)}
     </div>
     <div class="row2">
       <div class="field"><label>Jenis Pelayanan <span class="req">*</span></label>
@@ -2354,18 +2548,11 @@ function pelayananFormHtml(p={}, edit=false){
     <div class="field"><label>Anamnesa <span class="req">*</span></label>
       <textarea id="f-anamnesa" rows="2" placeholder="Wajib diisi — tulis keluhan/riwayat yang disampaikan pemilik">${escapeHtml(p.anamnesa)}</textarea>
     </div>
-    <div class="field"><label>Diagnosa Penyakit <span class="req">*</span></label>
-      <textarea id="f-jenispenyakit" rows="2" placeholder="Wajib diisi — pilih tombol di bawah atau ketik sendiri" oninput="sinkronDiagnosa()">${escapeHtml(p.jenisPenyakit)}</textarea>
+    <div class="field hewan-kasus-blok"><label>Hewan &amp; Kasus yang Ditangani <span class="req">*</span></label>
+      <div class="hint">Contoh: peternak A memiliki Sapi (Diare 2 ekor, Helminthiasis 3 ekor) dan Kerbau (Avitaminosis 2 ekor, Fraktur 1 ekor, Tympani 1 ekor): pilih spesies Sapi lalu tambahkan penyakit kedua, kemudian klik "+ Tambah Spesies Lain" untuk Kerbau.</div>
+      <div id="spesies-grup-list">${grupSpesiesHtml(edit ? {jenis:p.jenisTernak, kasus:[p]} : {kasus:[{}]}, !edit)}</div>
+      ${edit ? '' : '<button type="button" class="btn btn-accent btn-sm" onclick="tambahSpesiesGrup()">+ Tambah Spesies Lain</button>'}
     </div>
-    ${diagnosaCepatHtml()}
-    <div class="field"><label>Obat yang Digunakan <span class="req">*</span></label>
-      <textarea id="f-terapi" rows="2" placeholder="Wajib diisi — pilih tombol obat di bawah atau ketik sendiri" oninput="sinkronObat()">${escapeHtml(p.terapi)}</textarea>
-    </div>
-    ${obatCepatHtml()}
-    <div class="field"><label>Status Pelayanan <span class="req">*</span></label>
-      <select id="f-status">${opsiSelectHtml(STATUS_PELAYANAN, p.status)}</select>
-    </div>
-    ${phmsBlokHtml(p)}
     ${petugasFieldHtml(p)}
     <div class="field"><label>Catatan</label>
       <textarea id="f-catatan" rows="2" placeholder="Catatan tambahan (opsional)">${escapeHtml(p.catatan)}</textarea>
@@ -2378,28 +2565,38 @@ async function kumpulDataPelayanan(){
     const jenis = wajib('f-jenislayanan', 'Pilih jenis pelayanan');
     const tglStr = wajib('f-tglpelayanan', 'Isi tanggal pelayanan');
     const pemilik = bacaPemilik('');
-    const hewan = bacaHewan('', false);
-    const d = {
-      jenisLayanan: jenis, tanggal: new Date(tglStr), catatan: gv('f-catatan'),
-      sistemPelayanan: wajib('f-sistem', 'Pilih sistem pelayanan'),
-      anamnesa: wajib('f-anamnesa', 'Isi anamnesa/keluhan pemilik'),
-      jenisPenyakit: wajib('f-jenispenyakit', 'Isi diagnosa penyakit'),
-      terapi: wajib('f-terapi', 'Isi obat yang digunakan'),
-      status: wajib('f-status', 'Pilih status pelayanan (Sembuh/Masih Sakit/Mati/Potong Paksa/Selesai)'), hasilKonsultasi: '',
-      ...bacaPHMS()
-    };
-    return { data: { ...d, ...(await simpanPemilikJikaBaru(pemilik)) }, hewan };
+    const sistem = wajib('f-sistem', 'Pilih sistem pelayanan');
+    const anamnesa = wajib('f-anamnesa', 'Isi anamnesa/keluhan pemilik');
+    const kasus = bacaKasusPelayanan();
+    const d = { jenisLayanan: jenis, tanggal: new Date(tglStr), catatan: gv('f-catatan'), sistemPelayanan: sistem, anamnesa, hasilKonsultasi: '' };
+    return { data: { ...d, ...(await simpanPemilikJikaBaru(pemilik)) }, kasus };
   }catch(err){ tandaiError(err); return null; }
+}
+// Simpan: satu dokumen per spesies per penyakit (semuanya satu entriId), kompatibel dengan seluruh laporan
+async function simpanEntriKasus(common, kasus){
+  common.petugasNama = currentProfile?.nama || currentUser.email;
+  common.petugasRole = currentProfile?.role || 'Admin';
+  common.createdBy = currentUser.uid;
+  const entriId = idEntri(), batch = db.batch();
+  let idPertama = '';
+  kasus.forEach(k=>{
+    const ref = db.collection('pelayanan').doc();
+    if(!idPertama) idPertama = ref.id;
+    batch.set(ref, { ...common, entriId, ...k });
+  });
+  await batch.commit();
+  const ringkas = kasus.map(k=>`${k.jenisTernak} ${k.jumlahTernak} ekor ${k.jenisPenyakit}`).join('; ');
+  catatAudit('tambah', 'pelayanan', idPertama, `Menambahkan pelayanan "${common.jenisLayanan}" untuk ${common.namaPeternak||'-'} (${ringkas})`);
 }
 document.getElementById('btn-add-pelayanan').addEventListener('click', ()=>{
   openModal('Catat Pelayanan', pelayananFormHtml(), async ()=>{
     const hasil = await kumpulDataPelayanan();
     if(!hasil) return;
-    await simpanEntriHewan(hasil.data, hasil.hewan, `pelayanan "${hasil.data.jenisLayanan}"`);
-    showToast('Data pelayanan tersimpan');
+    await simpanEntriKasus(hasil.data, hasil.kasus);
+    showToast(hasil.kasus.length > 1 ? `Data pelayanan tersimpan (${hasil.kasus.length} kasus)` : 'Data pelayanan tersimpan');
     closeModal();
   });
-  perbaruiPHMS(); perbaruiSaran('');
+  perbaruiSaran('');
 });
 window.editPelayanan = function(id){
   const p = pelayananCache.find(x=>x.id===id);
@@ -2408,12 +2605,12 @@ window.editPelayanan = function(id){
   openModal('Ubah Pelayanan', pelayananFormHtml(p, true), async ()=>{
     const hasil = await kumpulDataPelayanan();
     if(!hasil) return;
-    await db.collection('pelayanan').doc(id).update({ ...hasil.data, ...rekamHewanPelayanan(hasil.hewan[0]) });
+    await db.collection('pelayanan').doc(id).update({ ...hasil.data, ...hasil.kasus[0] });
     catatAudit('ubah', 'pelayanan', id, `Mengubah pelayanan "${hasil.data.jenisLayanan}" untuk ${hasil.data.namaPeternak||'-'}`);
     showToast('Data pelayanan diperbarui');
     closeModal();
   });
-  perbaruiPHMS(); perbaruiSaran('');
+  perbaruiSaran('');
 };
 // Hapus (dipakai Pelayanan, Konsultasi, dan Pemeriksaan Kesehatan)
 window.deletePelayanan = async function(id){
