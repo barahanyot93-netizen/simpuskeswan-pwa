@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.barahanyot93_netizen.twa",
+      "sha256_cert_fingerprints": [
+        "11:39:A9:C2:F5:C5:E3:C2:69:ED:AB:F0:37:8B:F6:7C:C7:D2:B2:5F:7F:A6:CE:CE:E3:2D:21:32:EF:F3:8C:20"
+      ]
+    }
+  }
+]
