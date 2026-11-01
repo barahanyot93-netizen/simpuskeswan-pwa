@@ -1,2 +1,2 @@
 # simpuskeswan-pwa
-versi 1.5
+versi 2.0
