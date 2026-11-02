@@ -4934,5 +4934,18 @@ function initAllListeners(){
   isiDropdownPetugasLaporan();
 }
 </script>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./pwabuilder-sw.js')
+      .then(registration => {
+        console.log('SIMPUSKESWAN Service Worker terdaftar:', registration.scope);
+      })
+      .catch(error => {
+        console.error('Gagal mendaftarkan Service Worker:', error);
+      });
+  });
+}
+</script>
 </body>
 </html>
