@@ -417,6 +417,7 @@
   .ttd-asli-sembunyi{display:none !important;}
   .ttd-cell{border:none !important; background:#fff !important; padding:0 !important; white-space:normal !important;}
   tbody.ttd-tbody tr:hover{background:#fff !important;}
+  .g-rinci{display:inline-block; margin-top:3px; font-size:12.5px; color:var(--text);}
 </style>
 </head>
 <body>
@@ -558,8 +559,8 @@
             <h3>10 Aktivitas Pelayanan Terbaru</h3>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Tanggal</th><th>Jenis Layanan</th><th>Pemilik</th><th>ID Tag</th><th>Gampong</th><th>Penyakit</th><th>Petugas</th></tr></thead>
-                <tbody id="dashboard-recent"><tr><td class="empty-row" colspan="7">Memuat data...</td></tr></tbody>
+                <thead><tr><th>Tanggal</th><th>Jenis Layanan</th><th>Pemilik</th><th>ID Tag</th><th>Gampong</th><th>Jenis Hewan</th><th>Penyakit</th><th>Petugas</th></tr></thead>
+                <tbody id="dashboard-recent"><tr><td class="empty-row" colspan="8">Memuat data...</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -2078,6 +2079,11 @@ function deteksiPHMS(){
     if(!gampong[gKey]) gampong[gKey] = {desa, kec:o.kecamatan, status:'Suspect', penyakit:new Set(), terakhir:dt};
     const g = gampong[gKey];
     if(info.status === 'Tertular') g.status = 'Tertular';
+    if(!g.stat) g.stat = {Tertular:{ids:new Set(), sp:{}, ekor:0}, Suspect:{ids:new Set(), sp:{}, ekor:0}};
+    {   // jumlah kasus + ekor per spesies untuk kartu Status Gampong
+      const sx = g.stat[info.status], spn = p.jenisTernak || 'Lainnya', ek = Number(p.jumlahTernak) || 0;
+      sx.ids.add(p.entriId || p.id); sx.sp[spn] = (sx.sp[spn] || 0) + ek; sx.ekor += ek;
+    }
     if(dt > g.terakhir) g.terakhir = dt;
     info.penyakit.forEach(nama=>{
       if(!penyakit[nama]) penyakit[nama] = {Tertular:{ids:new Set(),ekor:0}, Suspect:{ids:new Set(),ekor:0}, gampong:new Set(), terakhir:dt};
@@ -2133,12 +2139,19 @@ function renderDashboard(){
   const judulStatus = [adaGTertular ? 'Tertular' : '', adaGSuspect ? `Suspect ${PHMS_JENDELA_HARI}` : ''].filter(Boolean).join(', ');
   document.getElementById('status-body').innerHTML = adaKasus
     ? `<div class="big-status">${judulStatus}</div>
-       <ul class="dash-list">${gList.map(g=>`<li>${tagStatusPHMS(g.status)} <b>${escapeHtml(g.desa)}</b>${g.kec?` <span class="sub-text">(${escapeHtml(g.kec)})</span>`:''}<br><span class="sub-text">${escapeHtml(Array.from(g.penyakit).join(', '))} · terakhir ${fmtDate(g.terakhir)}</span></li>`).join('')}</ul>`
+       <ul class="dash-list">${gList.map(g=>`<li>${tagStatusPHMS(g.status)} <b>${escapeHtml(g.desa)}</b>${g.kec?` <span class="sub-text">(${escapeHtml(g.kec)})</span>`:''}<br><span class="sub-text">${escapeHtml(Array.from(g.penyakit).join(', '))} · terakhir ${fmtDate(g.terakhir)}</span>${rinciGampongPHMS(g)}</li>`).join('')}</ul>`
     : `<div class="big-status">Bebas</div><div class="dash-note">Tidak ada Gampong tertular atau suspect.</div>`;
   document.querySelectorAll('.phms-jendela').forEach(e=> e.textContent = PHMS_JENDELA_HARI);
 
   // 4. Grafik
   renderGrafik();
+}
+
+function rinciGampongPHMS(g){
+  const sx = g.stat && g.stat[g.status];
+  if(!sx || !sx.ids.size) return '';
+  const spes = Object.entries(sx.sp).sort((a,b)=> b[1]-a[1]).map(([n,v])=> `${escapeHtml(n)} ${v}`).join(', ');
+  return `<br><span class="g-rinci"><b>${sx.ids.size} kasus</b> &nbsp;·&nbsp; ${spes} &nbsp;·&nbsp; <b>total ${sx.ekor} ekor</b></span>`;
 }
 
 function renderGrafik(){
@@ -3072,12 +3085,14 @@ function renderDashboardRecent(){
   const urut = pelayananCache.slice().sort((a,b)=> tgl(b) - tgl(a));
   const terbaru = [], dilihat = new Set();
   for(const x of urut){ const k = x.entriId || x.id; if(dilihat.has(k)) continue; dilihat.add(k); terbaru.push(x); if(terbaru.length >= 10) break; }
-  if(terbaru.length === 0){ tbody.innerHTML = '<tr><td class="empty-row" colspan="7">Belum ada aktivitas</td></tr>'; return; }
+  if(terbaru.length === 0){ tbody.innerHTML = '<tr><td class="empty-row" colspan="8">Belum ada aktivitas</td></tr>'; return; }
   tbody.innerHTML = terbaru.map(x=>{
     const grup = pelayananCache.filter(y=> (y.entriId || y.id) === (x.entriId || x.id));
     const penyakit = Array.from(new Set(grup.map(y=> y.jenisPenyakit).filter(Boolean))).join(', ') || '-';
     const a = alamatRec(x);
-    return `<tr><td>${fmtDate(x.tanggal)}</td><td>${escapeHtml(x.jenisLayanan)||'-'}</td><td>${escapeHtml(x.namaPeternak)||'-'}</td><td>${escapeHtml(idTagRec(x))}</td><td>${escapeHtml(a.desa)||'-'}</td><td>${escapeHtml(penyakit)}</td><td>${escapeHtml(x.petugasNama)||'-'}</td></tr>`;
+    const per = {}; grup.forEach(y=>{ const k = y.jenisTernak || '-'; per[k] = (per[k]||0) + (Number(y.jumlahTernak)||0); });
+    const hewan = Object.entries(per).map(([k,v])=> `${k} ${v}`).join(', ');
+    return `<tr><td>${fmtDate(x.tanggal)}</td><td>${escapeHtml(x.jenisLayanan)||'-'}</td><td>${escapeHtml(x.namaPeternak)||'-'}</td><td>${escapeHtml(idTagRec(x))}</td><td>${escapeHtml(a.desa)||'-'}</td><td>${escapeHtml(hewan)}</td><td>${escapeHtml(penyakit)}</td><td>${escapeHtml(x.petugasNama)||'-'}</td></tr>`;
   }).join('');
 }
 
